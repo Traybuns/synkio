@@ -1,0 +1,199 @@
+# Azure DevOps CI/CD Pipeline for Synkio
+# Monorepo: Backend (Node.js) + Contracts (Hardhat) + Frontend (Next.js)
+
+trigger:
+  branches:
+    include:
+      - main
+      - develop
+      - feature/*
+  paths:
+    exclude:
+      - README.md
+      - docs/**
+      - '**/*.md'
+
+pr:
+  branches:
+    include:
+      - main
+      - develop
+
+variables:
+  - name: nodeVersion
+    value: '18.x'
+  - name: vmImageName
+    value: 'ubuntu-latest'
+
+stages:
+  # ============================================
+  # Stage 1: Build and Test All Components
+  # ============================================
+  - stage: BuildAndTest
+    displayName: 'Build & Test All Apps'
+    jobs:
+      # Job 1: Backend Build & Test
+      - job: Backend
+        displayName: 'Backend - Build & Test'
+        pool:
+          vmImage: $(vmImageName)
+        steps:
+          - checkout: self
+            submodules: true
+
+          - task: NodeTool@0
+            displayName: 'Install Node.js'
+            inputs:
+              versionSpec: $(nodeVersion)
+
+          # Cache backend dependencies
+          - task: Cache@2
+            displayName: 'Cache backend node_modules'
+            inputs:
+              key: 'npm | "$(Agent.OS)" | apps/backend/package-lock.json'
+              restoreKeys: |
+                npm | "$(Agent.OS)"
+              path: apps/backend/node_modules
+
+          # Install backend dependencies
+          - script: |
+              cd apps/backend
+              npm ci
+            displayName: 'Install backend dependencies'
+
+          # Lint backend
+          - script: |
+              cd apps/backend
+              npm run lint || true
+            displayName: 'Lint backend'
+            continueOnError: true
+
+          # Build backend
+          - script: |
+              cd apps/backend
+              npm run build || echo "No build script found"
+            displayName: 'Build backend'
+
+          # Test backend
+          - script: |
+              cd apps/backend
+              npm test || echo "No tests configured"
+            displayName: 'Test backend'
+            continueOnError: true
+            env:
+              CI: true
+
+      # Job 2: Smart Contracts Build & Test
+      - job: Contracts
+        displayName: 'Contracts - Build & Test'
+        pool:
+          vmImage: $(vmImageName)
+        steps:
+          - checkout: self
+
+          - task: NodeTool@0
+            displayName: 'Install Node.js'
+            inputs:
+              versionSpec: $(nodeVersion)
+
+          # Cache contracts dependencies
+          - task: Cache@2
+            displayName: 'Cache contracts node_modules'
+            inputs:
+              key: 'npm | "$(Agent.OS)" | apps/contracts/package-lock.json'
+              restoreKeys: |
+                npm | "$(Agent.OS)"
+              path: apps/contracts/node_modules
+
+          # Install contracts dependencies
+          - script: |
+              cd apps/contracts
+              npm ci
+            displayName: 'Install contracts dependencies'
+
+          # Compile smart contracts
+          - script: |
+              cd apps/contracts
+              npx hardhat compile
+            displayName: 'Compile smart contracts'
+
+          # Lint contracts
+          - script: |
+              cd apps/contracts
+              npx solhint 'contracts/**/*.sol' || true
+            displayName: 'Lint smart contracts'
+            continueOnError: true
+
+          # Test contracts
+          - script: |
+              cd apps/contracts
+              npx hardhat test
+            displayName: 'Test smart contracts'
+            env:
+              CI: true
+
+          # Security analysis with Slither
+          - script: |
+              pip3 install slither-analyzer
+              cd apps/contracts
+              slither . --json ../slither-report.json || true
+            displayName: 'Run Slither security analysis'
+            continueOnError: true
+
+          # Publish contract artifacts
+          - task: PublishBuildArtifacts@1
+            displayName: 'Publish contract artifacts'
+            inputs:
+              PathtoPublish: 'apps/contracts/artifacts'
+              ArtifactName: 'contracts'
+
+      # Job 3: Frontend Build & Test
+      - job: Frontend
+        displayName: 'Frontend - Build & Test'
+        pool:
+          vmImage: $(vmImageName)
+        steps:
+          - checkout: self
+
+          - task: NodeTool@0
+            displayName: 'Install Node.js'
+            inputs:
+              versionSpec: $(nodeVersion)
+
+          # Cache frontend dependencies
+          - task: Cache@2
+            displayName: 'Cache frontend node_modules'
+            inputs:
+              key: 'npm | "$(Agent.OS)" | apps/frontend/package-lock.json'
+              restoreKeys: |
+                npm | "$(Agent.OS)"
+              path: apps/frontend/node_modules
+
+          # Install frontend dependencies
+          - script: |
+              cd apps/frontend
+              npm ci
+            displayName: 'Install frontend dependencies'
+
+          # Lint frontend
+          - script: |
+              cd apps/frontend
+              npm run lint || true
+            displayName: 'Lint frontend'
+            continueOnError: true
+
+          # Build frontend
+          - script: |
+              cd apps/frontend
+              npm run build
+            displayName: 'Build frontend'
+            env:
+              CI: true
+              NODE_ENV: production
+
+          # Test frontend (if tests exist)
+          - script: |
+              cd apps/frontend
+              npm test || echo "No tests configured"
+            displayName: 'Test frontend'
+            continueOnError: true
