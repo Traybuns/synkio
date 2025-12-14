@@ -1,0 +1,26 @@
+﻿{
+  "build_artifactstagingdirectory": "1/a",
+  "agent_builddirectory": "1",
+  "collectionUrl": "https://dev.azure.com/spontaneousmanji/",
+  "definitionName": "Traybuns.synkio",
+  "repositoryTrackingInfo": [
+    {
+      "identifier": "self",
+      "repositoryType": "GitHub",
+      "repositoryUrl": "https://github.com/Traybuns/synkio",
+      "sourcesDirectory": "1/s/synkio"
+    }
+  ],
+  "fileFormatVersion": 3,
+  "lastRunOn": "12/14/2025 06:31:05 +01:00",
+  "repositoryType": "GitHub",
+  "lastMaintenanceAttemptedOn": "",
+  "lastMaintenanceCompletedOn": "",
+  "build_sourcesdirectory": "1/s",
+  "common_testresultsdirectory": "1/TestResults",
+  "collectionId": "779e68d2-425d-4814-affa-fe88f00483cc",
+  "definitionId": "1",
+  "hashKey": "00232212b36e563f1592436176c57e16a599441f",
+  "repositoryUrl": "https://github.com/Traybuns/synkio",
+  "system": "build"
+}

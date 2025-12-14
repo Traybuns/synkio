@@ -1,5 +1,4 @@
-# Azure DevOps CI/CD Pipeline for Synkio
-# Monorepo: Backend (Node.js) + Contracts (Hardhat) + Frontend (Next.js)
+# Azure DevOps CI Pipeline for Synkio (Monorepo – Local Agent)
 
 trigger:
   branches:
@@ -22,8 +21,6 @@ pr:
 variables:
   - name: nodeVersion
     value: '18.x'
-  - name: vmImageName
-    value: 'ubuntu-latest'
 
 stages:
   # ============================================
@@ -32,11 +29,14 @@ stages:
   - stage: BuildAndTest
     displayName: 'Build & Test All Apps'
     jobs:
-      # Job 1: Backend Build & Test
+
+      # ============================================
+      # Backend Job
+      # ============================================
       - job: Backend
         displayName: 'Backend - Build & Test'
         pool:
-          vmImage: $(vmImageName)
+          name: 'Default'
         steps:
           - checkout: self
             submodules: true
@@ -46,20 +46,18 @@ stages:
             inputs:
               versionSpec: $(nodeVersion)
 
-          # Cache backend dependencies
+          # Cache backend deps (root lockfile)
           - task: Cache@2
             displayName: 'Cache backend node_modules'
             inputs:
-              key: 'npm | "$(Agent.OS)" | apps/backend/package-lock.json'
+              key: 'npm | "$(Agent.OS)" | root | package-lock.json'
               restoreKeys: |
                 npm | "$(Agent.OS)"
               path: apps/backend/node_modules
 
-          # Install backend dependencies
-          - script: |
-              cd apps/backend
-              npm ci
-            displayName: 'Install backend dependencies'
+          # Install root dependencies
+          - script: npm ci
+            displayName: 'Install root dependencies'
 
           # Lint backend
           - script: |
@@ -83,11 +81,13 @@ stages:
             env:
               CI: true
 
-      # Job 2: Smart Contracts Build & Test
+      # ============================================
+      # Smart Contracts Job
+      # ============================================
       - job: Contracts
         displayName: 'Contracts - Build & Test'
         pool:
-          vmImage: $(vmImageName)
+          name: 'Default'
         steps:
           - checkout: self
 
@@ -96,7 +96,7 @@ stages:
             inputs:
               versionSpec: $(nodeVersion)
 
-          # Cache contracts dependencies
+          # Cache contracts deps (own lockfile)
           - task: Cache@2
             displayName: 'Cache contracts node_modules'
             inputs:
@@ -111,7 +111,7 @@ stages:
               npm ci
             displayName: 'Install contracts dependencies'
 
-          # Compile smart contracts
+          # Compile contracts
           - script: |
               cd apps/contracts
               npx hardhat compile
@@ -132,8 +132,9 @@ stages:
             env:
               CI: true
 
-          # Security analysis with Slither
+          # Slither security analysis
           - script: |
+              python3 --version
               pip3 install slither-analyzer
               cd apps/contracts
               slither . --json ../slither-report.json || true
@@ -147,11 +148,13 @@ stages:
               PathtoPublish: 'apps/contracts/artifacts'
               ArtifactName: 'contracts'
 
-      # Job 3: Frontend Build & Test
+      # ============================================
+      # Frontend Job
+      # ============================================
       - job: Frontend
         displayName: 'Frontend - Build & Test'
         pool:
-          vmImage: $(vmImageName)
+          name: 'Default'
         steps:
           - checkout: self
 
@@ -160,20 +163,18 @@ stages:
             inputs:
               versionSpec: $(nodeVersion)
 
-          # Cache frontend dependencies
+          # Cache frontend deps (root lockfile)
           - task: Cache@2
             displayName: 'Cache frontend node_modules'
             inputs:
-              key: 'npm | "$(Agent.OS)" | apps/frontend/package-lock.json'
+              key: 'npm | "$(Agent.OS)" | root | package-lock.json'
               restoreKeys: |
                 npm | "$(Agent.OS)"
               path: apps/frontend/node_modules
 
-          # Install frontend dependencies
-          - script: |
-              cd apps/frontend
-              npm ci
-            displayName: 'Install frontend dependencies'
+          # Install root dependencies
+          - script: npm ci
+            displayName: 'Install root dependencies'
 
           # Lint frontend
           - script: |
@@ -191,7 +192,7 @@ stages:
               CI: true
               NODE_ENV: production
 
-          # Test frontend (if tests exist)
+          # Test frontend
           - script: |
               cd apps/frontend
               npm test || echo "No tests configured"
