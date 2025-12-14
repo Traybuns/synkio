@@ -1,4 +1,4 @@
-# Azure DevOps CI Pipeline for Synkio (Monorepo – Local Agent)
+# Azure DevOps CI/CD Pipeline for Synkio
 
 trigger:
   branches:
