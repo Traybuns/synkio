@@ -1,5 +1,4 @@
 # Azure DevOps CI/CD Pipeline for Synkio
-# Monorepo: Backend (Node.js) + Contracts (Hardhat) + Frontend (Next.js)
 
 trigger:
   branches:
