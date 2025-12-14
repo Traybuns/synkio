@@ -35,7 +35,7 @@ stages:
       - job: Backend
         displayName: 'Backend - Build & Test'
         pool:
-          vmImage: $(vmImageName)
+          name: 'Default'
         steps:
           - checkout: self
             submodules: true
@@ -86,7 +86,7 @@ stages:
       - job: Contracts
         displayName: 'Contracts - Build & Test'
         pool:
-          vmImage: $(vmImageName)
+          name: 'Default'
         steps:
           - checkout: self
 
@@ -150,7 +150,7 @@ stages:
       - job: Frontend
         displayName: 'Frontend - Build & Test'
         pool:
-          vmImage: $(vmImageName)
+          name: 'Default'
         steps:
           - checkout: self
 
